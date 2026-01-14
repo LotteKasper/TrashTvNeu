@@ -1,0 +1,19 @@
+nodelist,
+,
+id,Kürzel
+name,Vollständiger Name oder Künstler*innen Namen
+age,"Altersgruppen: 1= bis 20 Jahre, 2= 21-30 Jahre, 3 = 31-40 Jahre, 4 =41-50 Jahre, 5= 51-60 Jahre, 6=61-70 Jahre"
+birthyear,Geburtsjahr
+residency,Wohnort zum Zeitpunkt der Dreharbeiten
+first_show,"Jahreszahl des ""Fernsehdebuts"""
+gender,"1 = female, 2 = male, 3 = diverse"
+origin,Herkunftsland
+,
+,
+edgelist,
+,
+weight,"1= Stimme mit Sonderregel (noch definieren) , 2= normale Stimme"
+relation,"1 = Rausgevoted, 2 = Management"
+love,"1 = Partner*innen, 2 = Kennenlernphase/ Flirt während der Show, 3 = Ex*partnerinnen/ Ex*kennenlernphasen"
+show,"Kürzel der Show: KdRS = Kampf der Realitystars , "
+time,
