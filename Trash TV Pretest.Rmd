@@ -1,0 +1,126 @@
+---
+title: "Trash TV Pretest"
+author: "Angelina Burger"
+date: "Wintersemester 25/26"
+output: html_document
+---
+
+## Laden der Programmbibliotheken
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(igraph)
+library(tidygraph)
+library(tidyverse)
+```
+
+# Netzwerk einlesen
+
+
+Github-Link:
+[Github](https://github.com/LotteKasper/TrashTvNeu/tree/main)
+
+```{r Netzwerk einlesen}
+el <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Edgelist%20Pretest.csv", header=T, stringsAsFactors=F, sep = ",")
+
+nl <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Nodelist%20Pretest.csv", header=T, stringsAsFactors=F, sep = ",")
+
+# erstellt das Netzwerk als tidygraph-Objekt
+s <- tbl_graph(nodes = nl, edges = el, directed = TRUE)
+
+# Netzwerk aufrufen
+s
+```
+
+
+```{r Teilnetzwerk Managements, fig.height=4, fig.width=10}
+
+# Übersicht der Edge-Attribute
+list.edge.attributes(s)
+
+# Attribut aufrufen
+# edge.attributes(s)$
+
+# Teilnetzwerk erstellen
+s_managements <- s %>% 
+  activate(edges) %>%
+  filter(relation == 2)
+
+# Teilnetzwerk aufrufen
+s_managements
+
+# Überprüfung
+edge.attributes(s_managements)$relation
+# png("Managementnetzwerk.png", width = 6000, height = 4000, res = 300)
+
+# Visualisierung
+plot(s_managements, 
+     asp=0,
+     layout = layout_nicely,
+     vertex.size = 10,
+     main="Netzwerk der Kandidat*innen und Managements in KdRS")
+# dev.off()
+# getwd()
+```
+
+
+
+
+
+
+
+
+
+```{r Teilnetzwerk ohne Managements}
+
+# Übersicht der Vertex-Attribute
+list.vertex.attributes(s)
+
+# Attribut aufrufen
+vertex.attributes(s)$role
+
+# Teilnetzwerk erstellen
+s_kandidatinnen <- s %>% 
+  activate(nodes) %>%
+  filter(role == 1)
+
+# Teilnetzwerk aufrufen
+s_kandidatinnen
+
+# Überprüfung
+vertex.attributes(s_kandidatinnen)$role
+
+# Visualisierung
+plot(s_kandidatinnen, 
+     asp=0,
+     layout = layout_nicely,
+     main="Netzwerk der Votings in KdRS")
+
+```
+```{r Teilnetzwerk Ü40-Teilnehmende}
+
+# Übersicht der Vertex-Attribute
+list.vertex.attributes(s)
+
+# Attribut aufrufen
+vertex.attributes(s)$age
+
+# Teilnetzwerk erstellen
+s_ü40 <- s %>% 
+  activate(nodes) %>%
+  filter(age >= 4)
+
+# Teilnetzwerk aufrufen
+s_ü40
+
+# Überprüfung
+vertex.attributes(s_ü40)$age
+
+# Visualisierung
+plot(s_ü40, 
+     asp=0,
+     layout = layout_nicely,
+     main="Netzwerk der Votings der Ü40-Teilnehmenden in KdRS")
+
+```
+
