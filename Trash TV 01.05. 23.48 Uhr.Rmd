@@ -1,0 +1,313 @@
+---
+title: "Trash TV Pretest"
+author: "Angelina Burger"
+date: "Wintersemester 25/26"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Laden der Programmbibliotheken
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+library(igraph)
+library(tidygraph)
+library(tidyverse)
+library(ggraph)
+library(ggplot2)
+```
+
+# Netzwerk einlesen
+
+Github-Link: [Github](https://github.com/LotteKasper/TrashTvNeu/tree/main)
+
+```{r Netzwerk einlesen, include=FALSE}
+
+el <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Edgelist%20Trash%20TV.csv", header=T, stringsAsFactors=F, sep = ",")
+
+nl <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Nodelist%20Trash%20TV.csv", header=T, stringsAsFactors=F, sep = ",")
+library(tidyverse)
+
+s <- tbl_graph(nodes = nl, edges = el, directed = TRUE) %>% 
+  activate(nodes) %>% 
+  mutate(degree = centrality_degree())
+
+# Netzwerk aufrufen
+s
+```
+
+```{r Visualisierung 1, eval=FALSE, include=FALSE}
+
+# Einfachste Variante erst mal zum Testen
+# plot(s, 
+#     vertex.size = 10,
+#     vertex.label.cex = 1,
+#     edge.arrow.size = 1)
+
+```
+
+```{r Visualisierung 2, echo=FALSE}
+
+set.seed(123)
+ggraph(s, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree, fill = role), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV", 
+    subtitle = "Netzwerk der Reality TV Stars, ihrer Managements und der Shows"
+  )
+```
+
+```{r Beschreibung des Netzwerks, include=FALSE}
+
+# Art des Netzwerks s? (one-mode oder two-mode?) wenn true, dann two-mode
+is_bipartite(s)
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s)
+
+# Richtung?
+is_directed(s)
+
+# Anzahl der Knoten
+n_knoten <- vcount(s) 
+n_knoten
+
+#Anzahl der Kanten
+n_kanten <- ecount(s)
+n_kanten
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_s <- round(edge_density(s), digits = 2)
+dichte_rounded_s
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_s <- round(edge_density(s)*100, digits = 2)
+dichte_prozent_rounded_s
+
+# Reziprozität
+rezi_rounded_s <- round(reciprocity(s), digits = 2)
+rezi_rounded_s
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_s <- round(reciprocity(s)*100, digits = 2)
+rezi_prozent_rounded_s
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_s <- mean_distance(s)
+pfaddistanz_s
+
+```
+
+```{r Zentralitätsmaße des Netzwerks, include=FALSE}
+
+# Namen zuweisen
+V(s)$name <- nl$name_real
+
+# Top 3 Degree
+top3_deg_s <- names(sort(degree(s), decreasing = TRUE)[1:3])
+top3_deg_s
+
+# Top Indegree
+top_in_s <- names(sort(degree(s, mode="in"), decreasing = TRUE) [1:1])
+top_in_s
+
+# Top Outdegree
+top_out_s <- names(sort(degree(s, mode="out"), decreasing = TRUE) [1:1])
+top_out_s
+
+# höchste Betweenness 
+top_betw_s <- which.max(betweenness(s, normalized = TRUE))
+top_betw_s
+
+# Closeness
+top_clos_s <- names(sort(closeness(s, normalized=TRUE), decreasing = TRUE) [1:1])
+top_clos_s
+```
+
+## Deskriptive Netzwerkanalyse
+
+Bei dem vorliegenden Netzwerk handelt es sich um ein multimodales Netzwerk, da sowohl die Reality-TV-Persönlichkeiten als auch ihre Managements und Shows als Knoten erfasst werden. Die Kanten repräsentieren Beziehungen zwischen diesen Personen, die Zugehörigkeit zu einem Management oder die Teilnahme an einer Show. Das Netzwerk ist gerichtet und [gewichtet/ungewichtet]. Das Netzwerk umfasst insgesamt `r n_knoten` Knoten sowie `r n_kanten` Kanten. Es besteht aus nur einer Komponente und es gibt keine Isolates. Die Dichte des Netzwerks beträgt `r dichte_rounded_s`, was bedeutet, dass `r dichte_prozent_rounded_s`% aller möglichen Verbindungen tatsächlich realisiert sind. Dieser Wert deutet auf ein [eher dichtes/eher dünn besetztes] Netzwerk hin. Die Reziprozität liegt bei `r rezi_rounded_s`, das heißt, `r rezi_prozent_rounded_s`% aller gerichteten Kanten werden wechselseitig erwidert. Die durchschnittliche Pfaddistanz beträgt `r pfaddistanz_s`, d. h. zwei zufällig gewählte Knoten sind im Mittel über `r pfaddistanz_s` Zwischenschritte miteinander verbunden. Hinsichtlich der Degree-Zentralität stechen folgende Akteure als besonders stark vernetzt hervor: `r top3_deg_s`. Diese Knoten nehmen im Netzwerk eine zentrale Stellung ein und verfügen über die meisten direkten Verbindungen zu anderen Reality-TV-Stars. `r top_in_s` hat auch sowohl die meisten eingehenden als auch die meisten ausgehenen Verbindungen zu Anderen und ist am essentiellsten für die Vernetzung innerhalb des Netwerks.
+
+```{r Teilnetzwerk Social Media, include=FALSE}
+
+# Übersicht der Edge-Attribute
+list.edge.attributes(s)
+
+
+# Teilnetzwerk s_social_media erstellen
+s_social_media <- s %>% 
+  activate(edges) %>% 
+  filter(instagram >= 1) %>%
+  activate(nodes) %>%
+  filter(degree(.) > 0)
+
+# Teilnetzwerk aufrufen
+s_social_media
+
+```
+
+```{r Visualisierung Social Media-Netzwerk 1, eval=FALSE, include=FALSE}
+
+# Einfachste Variante erst mal zum Testen
+# plot(s_social_media, 
+#      vertex.size = 10,
+#      vertex.label.cex = 1,
+#     edge.arrow.size = 1)
+```
+
+```{r Visualisierung Social Media-Netzwerk 2, echo=FALSE}
+
+set.seed(456)
+ggraph(s_social_media, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree, fill = "lavender"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Social Media", 
+    subtitle = "Netzwerk der Interaktionen der Reality TV Stars auf Instagram")
+```
+
+```{r Management-Netzwerk, include=FALSE}
+
+# Netzwerk nur Management-Beziehungen
+s_managements <- s %>%
+  activate(edges) %>%
+  filter(relation == 2) %>%
+  activate(nodes) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_managements = centrality_degree())
+s_managements
+
+```
+
+```{r Netzwerkbeschreibung und Zentralitätsmaße Managements, include=FALSE}
+
+# Gibt es Managements, die eine hohe Zentralität haben? (Viele Shows und Angehörige)
+
+# Namen zuweisen
+# 1. Extrahiere die IDs der Knoten, die aktuell im Graphen sind
+graph_ids <- V(s_managements)$name_real 
+
+# 2. Filter dein Dataframe so, dass nur noch diese Zeilen übrig bleiben
+# Wir suchen im Dataframe nach der Spalte, die zu den Graph-IDs passt
+nl_filtered <- nl[match(graph_ids, nl$name_real), ]
+
+# 3. Jetzt kannst du die Namen zuweisen (jetzt sollte die Länge exakt 126 sein)
+V(s_managements)$name <- nl_filtered$name_real
+
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_managements)
+
+# Richtung?
+is_directed(s_managements)
+
+# Anzahl der Knoten
+n_knoten_managements <- vcount(s_managements)
+n_knoten_managements
+
+#Anzahl der Kanten
+n_kanten_managements <- ecount(s_managements)
+n_kanten_managements
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_s_managements <- round(edge_density(s_managements), digits = 2)
+dichte_rounded_s_managements
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_s_managements <- round(edge_density(s_managements)*100, digits = 2)
+dichte_prozent_rounded_s_managements
+
+# Top 3 Degree
+top3_deg_s_managements <- names(sort(degree(s_managements), decreasing = TRUE)[1:3])
+top3_deg_s_managements
+
+# höchste Betweenness 
+top_betw_s_managements <- which.max(betweenness(s_managements, normalized = TRUE))
+top_betw_s_managements
+
+# Closeness
+top_clos_s_managements <- names(sort(closeness(s_managements, normalized=TRUE), decreasing = TRUE) [1:1])
+top_clos_s_managements
+
+```
+
+```{r Visualisierung Management-Netzwerk 1, eval=FALSE, include=FALSE}
+
+# Einfachste Variante zum Testen
+# plot(s_managements, 
+#     vertex.size = 10,
+#     vertex.label.cex = 1,
+#     edge.arrow.size = 1)
+```
+
+```{r Visualisierung Management-Netzwerk 2, echo=FALSE}
+
+# schöne Visualisierung
+set.seed(789)
+ggraph(s_managements, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_managements, fill = "lavender"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = id), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Management", 
+    subtitle = "Netzwerk der Managements der Reality TV Stars")
+```
+
+```{r Vote und Instagram}
+
+# Gibt es Leute, die gegeneinander gevoted und trotzdem Kontakt über Instagram haben?
+
+
+
+
+
+```
