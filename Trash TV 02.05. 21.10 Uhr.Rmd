@@ -1,0 +1,1366 @@
+---
+title: "Trash TV Pretest"
+author: "Angelina Burger"
+date: "Wintersemester 25/26"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+library(igraph)
+library(tidygraph)
+library(tidyverse)
+library(ggraph)
+library(ggplot2)
+library(egor)
+```
+
+Github-Link: [Github](https://github.com/LotteKasper/TrashTvNeu/tree/main)
+
+## Netzwerk erstellen
+```{r Netzwerk einlesen}
+
+el <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Edgelist%20Trash%20TV.csv", header=T, stringsAsFactors=F, sep = ",")
+
+nl <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Nodelist%20Trash%20TV.csv", header=T, stringsAsFactors=F, sep = ",")
+library(tidyverse)
+
+s <- tbl_graph(nodes = nl, edges = el, directed = TRUE) %>% 
+  activate(nodes) %>% 
+  mutate(degree = centrality_degree())
+
+# Netzwerk aufrufen
+s
+```
+
+# Visualisierung
+```{r Visualisierung 1, eval=FALSE, include=FALSE}
+
+# Einfachste Variante erst mal zum Testen
+# plot(s, 
+#     vertex.size = 10,
+#     vertex.label.cex = 1,
+#     edge.arrow.size = 1)
+
+```
+
+```{r Visualisierung 2, echo=FALSE}
+
+set.seed(123)
+ggraph(s, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree, fill = role), 
+    shape = 21,          # Füllen der Farbe
+    color = "black"      # Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real),
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV", 
+    subtitle = "Netzwerk der Reality TV Stars, ihrer Managements und der Shows"
+  )
+```
+
+# Netzwerkbeschreibung
+```{r Beschreibung des Netzwerks}
+
+# Art des Netzwerks s? (one-mode oder two-mode?) wenn true, dann two-mode
+is_bipartite(s)
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s)
+
+# Richtung?
+is_directed(s)
+
+# Anzahl der Knoten
+n_knoten <- vcount(s) 
+n_knoten
+
+#Anzahl der Kanten
+n_kanten <- ecount(s)
+n_kanten
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_s <- round(edge_density(s), digits = 2)
+dichte_rounded_s
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_s <- round(edge_density(s)*100, digits = 2)
+dichte_prozent_rounded_s
+
+# Reziprozität
+rezi_rounded_s <- round(reciprocity(s), digits = 2)
+rezi_rounded_s
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_s <- round(reciprocity(s)*100, digits = 2)
+rezi_prozent_rounded_s
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_s <- mean_distance(s)
+pfaddistanz_s
+
+```
+
+# Zentralitätsmaße
+```{r Zentralitätsmaße des Netzwerks}
+
+# Namen zuweisen
+V(s)$name <- nl$name_real
+
+# Top 3 Degree
+top3_deg_s <- names(sort(degree(s), decreasing = TRUE)[1:3])
+top3_deg_s
+
+# Top Indegree
+top_in_s <- names(sort(degree(s, mode="in"), decreasing = TRUE) [1:1])
+top_in_s
+
+# Top Outdegree
+top_out_s <- names(sort(degree(s, mode="out"), decreasing = TRUE) [1:1])
+top_out_s
+
+# höchste Betweenness 
+top_betw_s <- which.max(betweenness(s, normalized = TRUE))
+top_betw_s
+
+# Closeness
+top_clos_s <- names(sort(closeness(s, normalized=TRUE), decreasing = TRUE) [1:1])
+top_clos_s
+```
+
+## Deskriptive Netzwerkanalyse
+
+Bei dem vorliegenden Netzwerk handelt es sich um ein multimodales Netzwerk, da sowohl die Reality-TV-Persönlichkeiten als auch ihre Managements und Shows als Knoten erfasst werden. Die Kanten repräsentieren Beziehungen zwischen diesen Personen, die Zugehörigkeit zu einem Management oder die Teilnahme an einer Show. Das Netzwerk ist gerichtet und [gewichtet/ungewichtet]. Das Netzwerk umfasst insgesamt `r n_knoten` Knoten sowie `r n_kanten` Kanten. Es besteht aus nur einer Komponente und es gibt keine Isolates. Die Dichte des Netzwerks beträgt `r dichte_rounded_s`, was bedeutet, dass `r dichte_prozent_rounded_s`% aller möglichen Verbindungen tatsächlich realisiert sind. Dieser Wert deutet auf ein [eher dichtes/eher dünn besetztes] Netzwerk hin. Die Reziprozität liegt bei `r rezi_rounded_s`, das heißt, `r rezi_prozent_rounded_s`% aller gerichteten Kanten werden wechselseitig erwidert. Die durchschnittliche Pfaddistanz beträgt `r pfaddistanz_s`, d. h. zwei zufällig gewählte Knoten sind im Mittel über `r pfaddistanz_s` Zwischenschritte miteinander verbunden. Hinsichtlich der Degree-Zentralität stechen folgende Akteure als besonders stark vernetzt hervor: `r top3_deg_s`. Diese Knoten nehmen im Netzwerk eine zentrale Stellung ein und verfügen über die meisten direkten Verbindungen zu anderen Reality-TV-Stars. `r top_in_s` hat auch sowohl die meisten eingehenden als auch die meisten ausgehenen Verbindungen zu Anderen und ist am essentiellsten für die Vernetzung innerhalb des Netwerks.
+
+## Social Media-Teilnetzwerk erstellen
+```{r Teilnetzwerk Social Media, include=FALSE}
+
+# Teilnetzwerk s_social_media erstellen
+s_social_media <- s %>% 
+  activate(edges) %>% 
+  filter(instagram >= 1) %>%
+  activate(nodes) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_instagram = centrality_degree())
+
+# Teilnetzwerk aufrufen
+s_social_media
+
+```
+
+# Visualisierung
+```{r Visualisierung Social Media-Netzwerk 1, eval=FALSE, include=FALSE}
+
+# Einfachste Variante erst mal zum Testen
+# plot(s_social_media, 
+#      vertex.size = 10,
+#      vertex.label.cex = 1,
+#     edge.arrow.size = 1)
+```
+
+```{r Visualisierung Social Media-Netzwerk 2, echo=FALSE}
+
+set.seed(456)
+ggraph(s_social_media, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree, fill = "lavender"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Social Media", 
+    subtitle = "Netzwerk der Interaktionen der Reality TV Stars auf Instagram")
+```
+
+# Netzwerkbeschreibung
+```{r Netzwerkbeschreibung Social Media}
+
+# Namen zuweisen
+s_social_media <- s_social_media %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+names(which.min(degree(s_social_media, mode="all")))
+
+# Top 3 Degree
+top3_deg_sm <- names(sort(degree(s_social_media), decreasing = TRUE)[1:3])
+top3_deg_sm
+
+# Top Indegree
+top_in_sm <- names(sort(degree(s_social_media, mode="in"), decreasing = TRUE) [1:1])
+top_in_sm
+
+# Top Outdegree
+top_out_sm <- names(sort(degree(s_social_media, mode="out"), decreasing = TRUE) [1:1])
+top_out_sm
+
+# höchste Betweenness 
+top_betw_sm <- which.max(betweenness(s_social_media, normalized = TRUE))
+top_betw_sm
+
+# Closeness
+top_clos_sm <- names(sort(closeness(s_social_media, normalized=TRUE), decreasing = TRUE) [1:1])
+top_clos_sm
+
+```
+
+# Zentralitätsmaße
+```{r Zentralitätsmaße Social Media}
+
+# Top 3 Degree
+top3_deg_sm <- names(sort(degree(s_social_media), decreasing = TRUE)[1:3])
+top3_deg_sm
+
+# höchste Betweenness 
+top_betw_sm <- which.max(betweenness(s_social_media, normalized = TRUE))
+top_betw_sm
+
+# Closeness
+top_clos_sm <- names(sort(closeness(s_social_media, normalized=TRUE), decreasing = TRUE) [1:1])
+top_clos_sm
+
+```
+
+## Management-Teilnetzwerk erstellen
+```{r Management-Netzwerk, include=FALSE}
+
+# Netzwerk nur Management-Beziehungen
+s_managements <- s %>%
+  activate(edges) %>%
+  filter(relation == 2) %>%
+  activate(nodes) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_managements = centrality_degree())
+s_managements
+
+```
+
+# Visualisierung
+```{r Visualisierung Management-Netzwerk 1, eval=FALSE, include=FALSE}
+
+# Einfachste Variante zum Testen
+# plot(s_managements, 
+#     vertex.size = 10,
+#     vertex.label.cex = 1,
+#     edge.arrow.size = 1)
+```
+
+```{r Visualisierung Management-Netzwerk 2, echo=FALSE}
+
+# schöne Visualisierung
+set.seed(789)
+ggraph(s_managements, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_managements, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Management", 
+    subtitle = "Netzwerk der Managements der Reality TV Stars")
+```
+
+# Netzwerkbeschreibung
+```{r Netzwerkbeschreibung Managements, include=FALSE}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_managements)
+
+# Richtung?
+is_directed(s_managements)
+
+# Anzahl der Knoten
+n_knoten_m <- vcount(s_managements)
+n_knoten_m
+
+#Anzahl der Kanten
+n_kanten_m <- ecount(s_managements)
+n_kanten_m
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_s_ <- round(edge_density(s_managements), digits = 2)
+dichte_rounded_s_
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_m <- round(edge_density(s_managements)*100, digits = 2)
+dichte_prozent_rounded_m
+```
+
+# Zentralitätsmaße
+```{r Zentralitätsmaße Management-Netzwerk}
+
+# Gibt es Managements, die eine hohe Zentralität haben? (Viele Shows und Angehörige)
+
+# Namen zuweisen
+s_managements <- s_managements %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Top 3 Degree
+top3_deg_m <- names(sort(degree(s_managements), decreasing = TRUE)[1:3])
+top3_deg_m
+
+```
+
+## Voting-Teilnetzwerk erstellen
+```{r Teilnetzwerk Voting, include=FALSE}
+
+# Teilnetzwerk s_voting erstellen
+s_voting <- s %>% 
+  activate(edges) %>% 
+  filter(relation == 1) %>%
+  activate(nodes) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_voting = centrality_degree())
+
+# Teilnetzwerk aufrufen
+s_voting
+
+```
+
+```{r Visualisierung Voting-Netzwerk 2, echo=FALSE}
+
+set.seed(999)
+ggraph(s_voting, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_voting, fill = "lavender"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Voting", 
+    subtitle = "Netzwerk der Votings der Reality TV Stars in den Shows")
+
+
+```
+
+```{r Beschreibung und Zentralitätsmaße Voting}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_voting)
+
+# Anzahl der Knoten
+n_knoten_v <- vcount(s_v) 
+n_knoten_v
+
+#Anzahl der Kanten
+n_kanten_v <- ecount(s_voting)
+n_kanten_v
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_v <- round(edge_density(s_voting), digits = 2)
+dichte_rounded_v
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_v <- round(edge_density(s_voting)*100, digits = 2)
+dichte_prozent_rounded_v
+
+# Reziprozität
+rezi_rounded_v <- round(reciprocity(s_voting), digits = 2)
+rezi_rounded_v
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_v <- round(reciprocity(s_voting)*100, digits = 2)
+rezi_prozent_rounded_v
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_v <- mean_distance(s_voting)
+pfaddistanz_v
+
+
+# Namen zuweisen
+s_voting <- s_voting %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_v <- names(sort(degree(s_voting), decreasing = TRUE)[1:1])
+min_deg_v
+
+# Knoten mit niedrigstem Degree
+min_deg_v <- names(sort(degree(s_voting), decreasing = FALSE)[1:1])
+min_deg_v
+
+```
+
+## Business-Teilnetzwerke
+# Dienstleistungen 
+```{r Dienstleistungs-Netzwerk}
+
+# Teilnetzwerk s_dienstleistungen erstellen
+s_dienstleistungen <- s %>% 
+  activate(nodes) %>%
+  filter(business == 3) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_dl = centrality_degree())
+
+
+# Teilnetzwerk aufrufen
+s_dienstleistungen
+
+```
+
+```{r Visualisierung Dienstleistungen}
+
+# schöne Visualisierung
+set.seed(111)
+ggraph(s_dienstleistungen, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_dl, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Dienstleistungen", 
+    subtitle = "Netzwerk der dienstleistenden Reality TV Stars")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße Dienstleistungen}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_dienstleistungen)
+
+# Anzahl der Knoten
+n_knoten_dl <- vcount(s_dienstleistungen) 
+n_knoten_dl
+
+#Anzahl der Kanten
+n_kanten_dl <- ecount(s_dienstleistungen)
+n_kanten_dl
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_dl <- round(edge_density(s_dienstleistungen), digits = 2)
+dichte_rounded_dl
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_dl <- round(edge_density(s_dienstleistungen)*100, digits = 2)
+dichte_prozent_rounded_dl
+
+# Reziprozität
+rezi_rounded_dl <- round(reciprocity(s_dienstleistungen), digits = 2)
+rezi_rounded_dl
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_dl <- round(reciprocity(s_dienstleistungen)*100, digits = 2)
+rezi_prozent_rounded_dl
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_dl <- mean_distance(s_dienstleistungen)
+pfaddistanz_dl
+
+
+# Namen zuweisen
+s_dienstleistungen <- s_dienstleistungen %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_dl <- names(sort(degree(s_dienstleistungen), decreasing = TRUE)[1:1])
+min_deg_dl
+
+# Knoten mit niedrigstem Degree
+min_deg_dl <- names(sort(degree(s_dienstleistungen), decreasing = FALSE)[1:1])
+min_deg_dl
+
+```
+
+
+# Selbstständige
+```{r Netzwerk der Selbstständigen}
+
+# Teilnetzwerk s_selbstständig erstellen
+s_selbstständig <- s %>% 
+  activate(nodes) %>%
+  filter(business == 1) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_sb = centrality_degree())
+
+
+# Teilnetzwerk aufrufen
+s_selbstständig
+
+```
+
+```{r Visualisierung Selbstständige}
+
+# schöne Visualisierung
+set.seed(222)
+ggraph(s_selbstständig, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_sb, fill = "lavender"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Selbstständige", 
+    subtitle = "Netzwerk der selbstständigen Reality TV Stars")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße Selbstständige}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_selbstständig)
+
+# Anzahl der Knoten
+n_knoten_sb <- vcount(s_selbstständig) 
+n_knoten_sb
+
+#Anzahl der Kanten
+n_kanten_sb <- ecount(s_selbstständig)
+n_kanten_sb
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_sb <- round(edge_density(s_selbstständig), digits = 2)
+dichte_rounded_sb
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_sb <- round(edge_density(s_selbstständig)*100, digits = 2)
+dichte_prozent_rounded_sb
+
+# Reziprozität
+rezi_rounded_sb <- round(reciprocity(s_selbstständig), digits = 2)
+rezi_rounded_sb
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_sb <- round(reciprocity(s_selbstständig)*100, digits = 2)
+rezi_prozent_rounded_sb
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_sb <- mean_distance(s_selbstständig)
+pfaddistanz_sb
+
+
+# Namen zuweisen
+s_selbstständig <- s_selbstständig %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_sb <- names(sort(degree(s_selbstständig), decreasing = TRUE)[1:1])
+min_deg_sb
+
+# Knoten mit niedrigstem Degree
+min_deg_sb <- names(sort(degree(s_selbstständig), decreasing = FALSE)[1:1])
+min_deg_sb
+
+```
+
+# Werbung und Kooperationen
+```{r Werbung Netzwerk}
+
+# Teilnetzwerk s_selbstständig erstellen
+s_werbung <- s %>% 
+  activate(nodes) %>%
+  filter(business == 2) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_w = centrality_degree())
+
+
+# Teilnetzwerk aufrufen
+s_werbung
+
+```
+
+```{r Visualisierung Werbung und Koops}
+
+# schöne Visualisierung
+set.seed(333)
+ggraph(s_werbung, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_w, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV Werbung und Kooperationen", 
+    subtitle = "Netzwerk der werbenden Reality TV Stars")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_werbung)
+
+# Anzahl der Knoten
+n_knoten_w <- vcount(s_werbung) 
+n_knoten_w
+
+#Anzahl der Kanten
+n_kanten_w <- ecount(s_werbung)
+n_kanten_w
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_w <- round(edge_density(s_werbung), digits = 2)
+dichte_rounded_w
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_w <- round(edge_density(s_werbung)*100, digits = 2)
+dichte_prozent_rounded_w
+
+# Reziprozität
+rezi_rounded_w <- round(reciprocity(s_werbung), digits = 2)
+rezi_rounded_w
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_w <- round(reciprocity(s_werbung)*100, digits = 2)
+rezi_prozent_rounded_w
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_w <- mean_distance(s_werbung)
+pfaddistanz_w
+
+
+# Namen zuweisen
+s_werbung <- s_werbung %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_w <- names(sort(degree(s_werbung), decreasing = TRUE)[1:1])
+min_deg_w
+
+# Knoten mit niedrigstem Degree
+min_deg_w <- names(sort(degree(s_werbung), decreasing = FALSE)[1:1])
+min_deg_w
+
+```
+
+# Sonstige
+```{r Netzwerk der Sonstigen}
+
+# Teilnetzwerk s_sonstige erstellen
+s_sonstige <- s %>% 
+  activate(nodes) %>%
+  filter(business == 5) %>%
+  filter(degree(.) > 0) %>% 
+  mutate(degree_so = centrality_degree())
+
+
+# Teilnetzwerk aufrufen
+s_sonstige
+
+```
+
+```{r Visualisierung Sportler}
+
+# schöne Visualisierung
+set.seed(444)
+ggraph(s_sonstige, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = degree_so, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Reality TV sonstiges Business", 
+    subtitle = "Netzwerk der Reality TV Stars mit sonstigem Business")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s_sonstige)
+
+# Anzahl der Knoten
+n_knoten_so <- vcount(s_sonstige) 
+n_knoten_so
+
+#Anzahl der Kanten
+n_kanten_so <- ecount(s_sonstige)
+n_kanten_so
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_so <- round(edge_density(s_dienstleistungen), digits = 2)
+dichte_rounded_so
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_dl <- round(edge_density(s_sonstige)*100, digits = 2)
+dichte_prozent_rounded_dl
+
+# Reziprozität
+rezi_rounded_so <- round(reciprocity(s_sonstige), digits = 2)
+rezi_rounded_so
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_so <- round(reciprocity(s_sonstige)*100, digits = 2)
+rezi_prozent_rounded_so
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_so <- mean_distance(s_sonstige)
+pfaddistanz_so
+
+
+# Namen zuweisen
+s_sonstige <- s_sonstige %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_so <- names(sort(degree(s_dienstleistungen), decreasing = TRUE)[1:1])
+min_deg_so
+
+# Knoten mit niedrigstem Degree
+min_deg_so <- names(sort(degree(s_sonstige), decreasing = FALSE)[1:1])
+min_deg_so
+
+```
+
+## Teilnetzwerke Shows
+# Kampf der Reality Stars
+```{r Teilnetzwerk KdRs}
+
+ego_id <- which(
+  s %>%
+    activate(nodes) %>%
+    pull(name_real) == "Kampf der Reality Stars"
+)
+```
+
+``` {r Visualisierung KdRs}
+
+ego_kdrs <- s %>%
+  convert(to_local_neighborhood, ego_id, order = 1)
+
+set.seed(1)
+ggraph(ego_kdrs, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = 5, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Kampf der Realitystars")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße KdrS}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(ego_kdrs)
+
+# Anzahl der Knoten
+n_knoten_kdrs <- vcount(ego_kdrs) 
+n_knoten_kdrs
+
+#Anzahl der Kanten
+n_kanten_kdrs <- ecount(ego_kdrs)
+n_kanten_kdrs
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_kdrs <- round(edge_density(ego_kdrs), digits = 2)
+dichte_rounded_kdrs
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_kdrs <- round(edge_density(ego_kdrs)*100, digits = 2)
+dichte_prozent_rounded_kdrs
+
+# Reziprozität
+rezi_rounded_kdrs <- round(reciprocity(ego_kdrs), digits = 2)
+rezi_rounded_kdrs
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_kdrs <- round(reciprocity(ego_kdrs)*100, digits = 2)
+rezi_prozent_rounded_kdrs
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_kdrs <- mean_distance(ego_kdrs)
+pfaddistanz_kdrs
+
+
+# Namen zuweisen
+ego_kdrs <- ego_kdrs %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_kdrs <- names(sort(degree(ego_kdrs), decreasing = TRUE)[1:1])
+min_deg_kdrs
+
+# Knoten mit niedrigstem Degree
+min_deg_kdrs <- names(sort(degree(ego_kdrs), decreasing = FALSE)[1:1])
+min_deg_kdrs
+
+```
+
+# Das Sommerhaus der Stars
+```{r Teilnetzwerk dShdS}
+
+ego_id <- which(
+  s %>%
+    activate(nodes) %>%
+    pull(name_real) == "Das Sommerhaus der Stars"
+)
+```
+
+``` {r Visualisierung dShdS}
+
+ego_dshds <- s %>%
+  convert(to_local_neighborhood, ego_id, order = 1)
+
+set.seed(2)
+ggraph(ego_dshds, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = 5, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Das Sommerhaus der Stars")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße dShdS}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(ego_dshds)
+
+# Anzahl der Knoten
+n_knoten_dshds <- vcount(ego_dshds) 
+n_knoten_dshds
+
+#Anzahl der Kanten
+n_kanten_dshds <- ecount(ego_dshds)
+n_kanten_dshds
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_dshds <- round(edge_density(ego_dshds), digits = 2)
+dichte_rounded_dshds
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_dshds <- round(edge_density(ego_dshds)*100, digits = 2)
+dichte_prozent_rounded_dshds
+
+# Reziprozität
+rezi_rounded_dshds <- round(reciprocity(ego_dshds), digits = 2)
+rezi_rounded_dshds
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_dshds <- round(reciprocity(ego_dshds)*100, digits = 2)
+rezi_prozent_rounded_dshds
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_dshds <- mean_distance(ego_dshds)
+pfaddistanz_dshds
+
+
+# Namen zuweisen
+ego_dshds <- ego_dshds %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_dshds <- names(sort(degree(ego_dshds), decreasing = TRUE)[1:1])
+min_deg_dshds
+
+# Knoten mit niedrigstem Degree
+min_deg_dshds <- names(sort(degree(ego_dshds), decreasing = FALSE)[1:1])
+min_deg_dshds
+
+```
+
+# Der promihof
+```{r Teilnetzwerk dP}
+
+ego_id <- which(
+  s %>%
+    activate(nodes) %>%
+    pull(name_real) == "Der Promihof"
+)
+```
+
+``` {r Visualisierung dP}
+
+ego_dp <- s %>%
+  convert(to_local_neighborhood, ego_id, order = 1)
+
+set.seed(2)
+ggraph(ego_dp, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = 5, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Der Promihof")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße dP}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(ego_dp)
+
+# Anzahl der Knoten
+n_knoten_dp <- vcount(ego_dp) 
+n_knoten_dp
+
+#Anzahl der Kanten
+n_kanten_dp <- ecount(ego_dp)
+n_kanten_dp
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_dp <- round(edge_density(ego_dp), digits = 2)
+dichte_rounded_dp
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_dp <- round(edge_density(ego_dp)*100, digits = 2)
+dichte_prozent_rounded_dp
+
+# Reziprozität
+rezi_rounded_dp <- round(reciprocity(ego_dp), digits = 2)
+rezi_rounded_dp
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_dp <- round(reciprocity(ego_dp)*100, digits = 2)
+rezi_prozent_rounded_dp
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_dp <- mean_distance(ego_dp)
+pfaddistanz_dp
+
+
+# Namen zuweisen
+ego_dp <- ego_dp %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_dp <- names(sort(degree(ego_dp), decreasing = TRUE)[1:1])
+min_deg_dp
+
+# Knoten mit niedrigstem Degree
+min_deg_dp <- names(sort(degree(ego_dp), decreasing = FALSE)[1:1])
+min_deg_dp
+
+```
+
+# Are You The One? VIP
+```{r Teilnetzwerk AYTO VIP}
+
+ego_id <- which(
+  s %>%
+    activate(nodes) %>%
+    pull(name_real) == "Are You The One? VIP"
+)
+```
+
+``` {r Visualisierung AYTO VIP}
+
+ego_ayto <- s %>%
+  convert(to_local_neighborhood, ego_id, order = 1)
+
+set.seed(4)
+ggraph(ego_dshds, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = 5, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Are You The One? VIP")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße AYTO VIP}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(ego_ayto)
+
+# Anzahl der Knoten
+n_knoten_ayto <- vcount(ego_ayto) 
+n_knoten_ayto
+
+#Anzahl der Kanten
+n_kanten_ayto <- ecount(ego_ayto)
+n_kanten_ayto
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_ayto <- round(edge_density(ego_ayto), digits = 2)
+dichte_rounded_ayto
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_ayto <- round(edge_density(ego_ayto)*100, digits = 2)
+dichte_prozent_rounded_ayto
+
+# Reziprozität
+rezi_rounded_ayto <- round(reciprocity(ego_ayto), digits = 2)
+rezi_rounded_ayto
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_ayto <- round(reciprocity(ego_ayto)*100, digits = 2)
+rezi_prozent_rounded_ayto
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_ayto <- mean_distance(ego_ayto)
+pfaddistanz_ayto
+
+
+# Namen zuweisen
+ego_ayto <- ego_ayto %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_ayto <- names(sort(degree(ego_ayto), decreasing = TRUE)[1:1])
+min_deg_ayto
+
+# Knoten mit niedrigstem Degree
+min_deg_ayto <- names(sort(degree(ego_ayto), decreasing = FALSE)[1:1])
+min_deg_ayto
+
+```
+
+# Love Island VIP
+```{r Teilnetzwerk LI VIP}
+
+ego_id <- which(
+  s %>%
+    activate(nodes) %>%
+    pull(name_real) == "Love Island VIP"
+)
+```
+
+``` {r Visualisierung LI VIP}
+
+ego_li <- s %>%
+  convert(to_local_neighborhood, ego_id, order = 1)
+
+set.seed(4)
+ggraph(ego_li, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = 5, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Love Island VIP")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße LI VIP}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(ego_li)
+
+# Anzahl der Knoten
+n_knoten_li <- vcount(ego_li) 
+n_knoten_li
+
+#Anzahl der Kanten
+n_kanten_li <- ecount(ego_li)
+n_kanten_li
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_li <- round(edge_density(ego_li), digits = 2)
+dichte_rounded_li
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_li <- round(edge_density(ego_li)*100, digits = 2)
+dichte_prozent_rounded_li
+
+# Reziprozität
+rezi_rounded_li <- round(reciprocity(ego_li), digits = 2)
+rezi_rounded_li
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_li <- round(reciprocity(ego_li)*100, digits = 2)
+rezi_prozent_rounded_li
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_li <- mean_distance(ego_li)
+pfaddistanz_li
+
+
+# Namen zuweisen
+ego_li <- ego_li %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_li <- names(sort(degree(ego_li), decreasing = TRUE)[1:1])
+min_deg_li
+
+# Knoten mit niedrigstem Degree
+min_deg_li <- names(sort(degree(ego_li), decreasing = FALSE)[1:1])
+min_deg_li
+
+```
+
+# Ich bin ein Star - Holt mich hier raus!
+```{r Teilnetzwerk IbeS}
+
+ego_id <- which(
+  s %>%
+    activate(nodes) %>%
+    pull(name_real) == "Ich bin ein Star - Holt mich hier raus!"
+)
+```
+
+``` {r Visualisierung IbeS}
+
+ego_ibes <- s %>%
+  convert(to_local_neighborhood, ego_id, order = 1)
+
+set.seed(4)
+ggraph(ego_ibes, layout = "graphopt") + 
+  
+  geom_edge_link(
+    arrow = arrow(length = unit(3, 'mm'), type = "closed"),
+    edge_colour = "grey50", 
+    alpha = 0.3
+  ) +
+  
+  geom_node_point(
+    aes(size = 5, fill = "role"), 
+    shape = 21,          # WICHTIG: Erlaubt das Füllen der Farbe
+    color = "black"      # Gibt den Punkten einen Rand
+  ) +
+  
+  geom_node_text(
+    aes(label = name_real), # WICHTIG: Hier muss aes() drumherum!
+    repel = TRUE
+  ) +
+  
+  labs(
+    title = "Ich bin ein Star - Holt mich hier raus!")
+
+```
+
+```{r Beschreibung und Zentralitätsmaße IbeS}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(ego_ibes)
+
+# Anzahl der Knoten
+n_knoten_ibes <- vcount(ego_ibes) 
+n_knoten_ibes
+
+#Anzahl der Kanten
+n_kanten_ibes <- ecount(ego_ibes)
+n_kanten_ibes
+
+# Dichte des Netzwerks s (wie viele Verbindungen sind realisiert?)
+dichte_rounded_ibes <- round(edge_density(ego_ibes), digits = 2)
+dichte_rounded_ibes
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_ibes <- round(edge_density(ego_ibes)*100, digits = 2)
+dichte_prozent_rounded_ibes
+
+# Reziprozität
+rezi_rounded_ibes <- round(reciprocity(ego_ibes), digits = 2)
+rezi_rounded_ibes
+
+# Reziprozität in Prozent
+rezi_prozent_rounded_ibes <- round(reciprocity(ego_ibes)*100, digits = 2)
+rezi_prozent_rounded_ibes
+
+# Pfaddistanz im Durchschnitt
+pfaddistanz_ibes <- mean_distance(ego_ibes)
+pfaddistanz_ibes
+
+
+# Namen zuweisen
+ego_li <- ego_ibes %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Knoten mit höchstem Degree
+max_deg_ibes <- names(sort(degree(ego_li), decreasing = TRUE)[1:1])
+min_deg_ibes
+
+# Knoten mit niedrigstem Degree
+min_deg_ibes <- names(sort(degree(ego_ibes), decreasing = FALSE)[1:1])
+min_deg_ibes
+
+```
+
+
