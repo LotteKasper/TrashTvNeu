@@ -1,0 +1,978 @@
+---
+title: "226305 Forschungsbericht Trash TV"
+author: "Angelina Burger | ab354@hdm-stuttgart.de"
+date: "08.05.2026"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+subtitle: Analyse des Beziehungsnetzwerks eines Semesters
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(include = FALSE)
+library(igraph)
+library(tidygraph)
+library(tidyverse)
+library(ggraph)
+library(ggplot2)
+library(egor)
+
+```
+
+# Zusammenfassung (Abstract)
+
+# 1. Einleitung
+
+# 2. Vorarbeiten und vergleichbare Studien
+
+## 2.1 Forschungsstand
+
+## 2.2 Arbeitshypothesen
+
+1.  In der Reality-Branche in Deutschland gibt es Managements die
+    dominieren, weil sie besonders viele Stars unter Vertrag haben.
+
+2.  Die Zugehörigkeit zum gleichen Management erhöht die Interaktionen
+    dere Stars auf Social Media
+
+    1.  in Hinblick auf Instagram-Follows.
+
+    2.  in Hinblick auf Markierungen oder gemeinsame Posts.
+
+3.  Stars die beim gleichen Management unter Vertrag stehen, arbeiten
+    neben ihrer Reality-Karriere die in der gleichen Branche.
+
+4.  Das Management hat sowohl positiven als auch negativen Einfluss auf
+    Votings innerhalb von Voting-Shows.
+
+# 3. Datenerhebung
+
+## 3.1 Zugang
+
+## 3.2 Bereinigung des Datensatzes
+
+## 3.3 Codebuch
+
+# 4. Analyse und Interpretation
+
+```{r Netzwerk einlesen, include=FALSE}
+
+el <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Edgelist%20Trash%20TV.csv", header=T, stringsAsFactors=F, sep = ",")
+
+nl <- read.csv("https://raw.githubusercontent.com/LotteKasper/TrashTvNeu/refs/heads/main/Nodelist%20Trash%20TV.csv", header=T, stringsAsFactors=F, sep = ",")
+library(tidyverse)
+
+s <- tbl_graph(nodes = nl, edges = el, directed = TRUE) %>% 
+  activate(nodes) %>% 
+  mutate(degree = centrality_degree())
+
+# Netzwerk aufrufen
+s
+
+```
+
+## 4.1 Netzwerkmaße
+
+```{r Beschreibung des Netzwerks}
+
+# Art des Netzwerks s? (one-mode oder two-mode?) wenn true, dann two-mode
+is_bipartite(s)
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+count_components(s)
+
+# Richtung?
+is_directed(s)
+
+# Anzahl der Knoten
+n_knoten <- vcount(s) 
+n_knoten
+
+#Anzahl der Kanten
+n_kanten <- ecount(s)
+n_kanten
+
+# Dichte als Prozentwert
+dichte_s <- round(edge_density(s)*100, digits = 2)
+dichte_s
+
+# Reziprozität in Prozent
+rezi_s <- round(reciprocity(s)*100, digits = 2)
+rezi_s
+
+# Pfaddistanz im Durchschnitt
+distance_s <- round(mean_distance(s), digits = 2)
+distance_s
+
+# Pfaddistanz im Durchschnitt (stark gerundet)
+distance_rounded_s <- round(mean_distance(s), digits = )
+distance_rounded_s
+
+```
+
+Bei dem vorliegenden Netzwerk handelt es sich um ein multimodales
+Netzwerk, da sowohl die Reality-TV-Persönlichkeiten als auch ihre
+Managements und Shows als Knoten erfasst werden. Die Kanten
+repräsentieren Beziehungen zwischen diesen Personen, die Zugehörigkeit
+zu einem Management oder die Teilnahme an einer Show. Das Netzwerk ist
+gerichtet und [gewichtet/ungewichtet]. Das Netzwerk umfasst insgesamt
+`r n_knoten` Knoten sowie `r n_kanten` Kanten. Es besteht aus nur einer
+Komponente und es gibt keine Isolates. Die Dichte des Netzwerks beträgt
+`r dichte_s`% was bedeutet, dass ca. ein Zehntel aller möglichen
+Verbindungen tatsächlich realisiert sind. Dieser Wert deutet auf ein
+sehr dichtes Netzwerk hin. `r rezi_s`% aller gerichteten Kanten werden
+wechselseitig erwidert. Die durchschnittliche Pfaddistanz beträgt
+`r distance_s`, d. h. zwei zufällig gewählte Knoten sind im Mittel über
+`r distance_rounded_s` Zwischenschritte miteinander verbunden.
+
+```{r Aufteilung des Netzwerks}
+
+# Anzahl der Stars
+n_stars <- s %>% 
+  activate(nodes) %>% 
+  filter(type == 1) %>% 
+  vcount()
+n_stars
+
+# Anzahl der Frauen
+n_female <- s %>% 
+  activate(nodes) %>% 
+  filter(gender == 1) %>% 
+  vcount()
+n_female
+
+# Anzahl der Männer
+n_male <- s %>% 
+  activate(nodes) %>% 
+  filter(gender == 2) %>% 
+  vcount()
+n_male
+
+# Anzahl der nichtbinären Menschen
+n_diverse <- s %>% 
+  activate(nodes) %>% 
+  filter(gender == 3) %>% 
+  vcount()
+n_diverse
+
+# Anzahl der Managements
+n_managements <- s %>% 
+  activate(nodes) %>% 
+  filter(type == 2) %>% 
+  vcount()
+n_managements
+
+# Anzahl der Shows
+n_shows <- s %>% 
+  activate(nodes) %>% 
+  filter(type == 3) %>% 
+  vcount()
+n_shows
+
+```
+
+`r n_stars` der Knoten stellen die teilnehmenden Stars dar. Von ihnen
+sind `r n_female` Frauen und `r n_male` Männer. Es gibt keine offen
+nichtbinären Menschen im Sample. Außerdem sind `n_managements` sowie die
+`r n_shows` Teil des gesamten Netzwerks.
+
+## 4.2 Positionale Maße
+
+```{r Teilnetzwerk nur Stars, include=FALSE}
+
+# Teilnetzwerk ohne Managements und Shows erstellen
+s_stars <- s %>% 
+  activate(nodes) %>% 
+  filter(type == 1)
+s_stars
+
+```
+
+```{r positionale Maße Gesamtnetzwerk}
+
+# Klarnamen als Beschriftung zuweisen
+V(s)$name <- V(s)$name_real
+
+# Top 3 Degree
+top3_deg <- names(sort(degree(s, mode="all"), decreasing = TRUE)[1:3])
+top3_deg
+
+# Min 3 Degree
+min3_deg <- names(sort(degree(s, mode="all"), decreasing = FALSE)[1:3])
+min3_deg
+
+# Top Indegree
+top_indeg <- names(sort(degree(s, mode="in"), decreasing = TRUE)[1])
+top_indeg
+
+x_top_indeg <- sort(degree(s, mode="in"), decreasing = TRUE)[1]
+x_top_indeg
+
+# Min Indegree
+x_min_indeg <- sort(degree(s, mode="in"), decreasing = FALSE)[1]
+x_min_indeg
+
+# Top Outdegree
+top_outdeg <- names(sort(degree(s, mode="out"), decreasing = TRUE)[1])
+top_outdeg
+
+x_top_outdeg <- sort(degree(s, mode="out"), decreasing = TRUE)[1]
+x_top_outdeg
+
+# Min Outdegree
+min_outdeg <- names(sort(degree(s, mode="out"), decreasing = FALSE)[1])
+min_outdeg
+
+# Top Betweenness
+top_betw <- names(sort(betweenness(s), decreasing = TRUE)[1])
+top_betw
+
+# Min Betweenness
+min_betw <- names(sort(betweenness(s), decreasing = FALSE)[1])
+min_betw
+
+# Top Closeness
+top_clos <- names(sort(closeness(s, mode="all"), decreasing = TRUE)[1])
+top_clos
+
+# Min Closeness
+min_clos <- names(sort(closeness(s, mode="all"), decreasing = FALSE)[1])
+min_clos
+
+```
+
+```{r positionale Maße Stars}
+
+# Klarnamen als Beschriftung zuweisen
+V(s_stars)$name <- V(s_stars)$name_real
+
+# Top 3 Degree
+top3_deg_stars <- names(sort(degree(s_stars, mode="all"), decreasing = TRUE)[1:3])
+top3_deg
+
+# Min 3 Degree
+min3_deg_stars <- names(sort(degree(s_stars, mode="all"), decreasing = FALSE)[1:3])
+min3_deg_stars
+
+# Top Indegree
+top_indeg_stars <- names(sort(degree(s_stars, mode="in"), decreasing = TRUE)[1])
+top_indeg_stars
+
+x_top_indeg_stars <- sort(degree(s_stars, mode="in"), decreasing = TRUE)[1]
+x_top_indeg_stars
+
+# Min Indegree
+min_indeg_stars <- names(sort(degree(s_stars, mode="in"), decreasing = FALSE)[1])
+min_indeg_stars
+
+x_min_indeg_stars <- sort(degree(s_stars, mode="in"), decreasing = FALSE)[1]
+x_min_indeg_stars
+
+# Top Outdegree
+top_outdeg_stars <- names(sort(degree(s_stars, mode="out"), decreasing = TRUE)[1])
+top_outdeg_stars
+
+x_top_outdeg_stars <- sort(degree(s_stars, mode="out"), decreasing = TRUE)[1]
+x_top_outdeg_stars
+
+# Min Outdegree
+min_outdeg_stars <- names(sort(degree(s_stars, mode="out"), decreasing = FALSE)[1])
+min_outdeg_stars
+
+x_min_outdeg_stars <- sort(degree(s_stars, mode="out"), decreasing = FALSE)[1]
+x_min_outdeg_stars
+
+# Top Betweenness
+top_betw_stars <- names(sort(betweenness(s_stars), decreasing = TRUE)[1])
+top_betw_stars
+
+# Min Betweenness
+min_betw_stars <- names(sort(betweenness(s_stars), decreasing = FALSE)[1])
+min_betw_stars
+
+# Top Closeness
+top_clos_stars <- names(sort(closeness(s_stars, mode="all"), decreasing = TRUE)[1])
+top_clos_stars
+
+# Min Closeness
+min_clos_stars <- names(sort(closeness(s_stars, mode="all"), decreasing = FALSE)[1])
+min_clos_stars
+
+
+```
+
+Die Akteure mit dem höchsten Degree, also der größten Summe an
+Verbindungen zu anderen, sind absteigend `r top3_deg`. `r top_indeg` hat
+auch sowohl am meisten eingehende als auch ausgehende verbindungen mit
+Werten von je `r x_top_indeg` und `r x_top_outdeg`. Die höchste
+Closeness, also schnellste Verbindung zu anderen, hat `r top_clos`,
+während `r top_betw` mit der höchsten Betweenness besonders viele
+Akteure miteinander vernetzt.
+
+Im Gesamtnetzwerk sind es hauptsächlich Managements und Shows, die am
+wenigsten vernetzt sind. Da das Forschungsinteresse aber der Vernetzung
+der Stars untereinander gilt, vergleichen wir die geringsten Werte aus
+dem Gesamtnetzwerk mit denen aus einem bereinigten Teilnetzwerk, das nur
+die Stars beinhaltet. Bei den Stars haben `r min3_deg_stars` am
+wenigsten Verbindungen zu anderen. Im Gesamtnetzwerk sind es
+`r min3_deg`, die alle drei Managemens sind.
+
+Den niedrigsten Indegree unter den Stars hat `r min_indeg_stars` mit nur
+`r x_min_indeg_stars` eingehenden Verbindungen. Im Gesamtnetzwerk haben
+alle Managements einen Indegree von `r x_min_indeg`, da
+Management-Beziehungen in der Edgelist von den Managements zu den Stars
+verlaufen und sie somit keine eingehenden Verbindungen aufweisen. Shows
+haben im Gesamtnetzwerk keine ausgehenden Verbindungen, da sie hier von
+den Stars zur Show verlaufen. Unter den Stars hat `r min_outdeg_stars`
+den geringsten Outdegree mit `r x_min_outdeg_stars` ausgehende
+Verbindungen. Unter den Stars hat `r min_betw_stars` sowohl die
+geringste Betweenness als auch die Closeness. Im Gesamtnetzwerk bleibt
+`r min_betw` auf dem letzten Platz was die Betweenness angeht, die
+geringste Closeness weist hier `r min_clos` auf.
+
+# 5. Prüfung der Hypothesen
+
+## 5.1 "In der Reality-Branche in Deutschland gibt es Managements die dominieren, weil sie besonders viele Stars unter Vertrag haben."
+
+```{r Management-Netzwerk, include=FALSE}
+
+# Netzwerk nur Management-Beziehungen
+s_managements <- s %>%
+  activate(edges) %>%
+  filter(relation == 2) %>%
+  activate(nodes) %>%
+  filter(!node_is_isolated())
+
+```
+
+```{r Netzwerkbeschreibung Managements}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+n_components_m <- count_components(s_managements)
+n_components_m
+
+# Anzahl der Knoten
+n_knoten_m <- vcount(s_managements)
+n_knoten_m
+
+#Anzahl der Kanten
+n_kanten_m <- ecount(s_managements)
+n_kanten_m
+
+# Anzahl der Management-Knoten
+n_knoten_nur_managements <- s_managements %>% 
+  activate(nodes) %>% 
+  filter(type == 2) %>% 
+  vcount()
+n_knoten_nur_managements
+
+# Dichte als Prozentwert
+dichte_m <- round(edge_density(s_managements)*100, digits = 2)
+dichte_m
+
+```
+
+```{r Zentralitätsmaße Management-Netzwerk}
+
+# Namen zuweisen
+s_managements <- s_managements %>%
+  activate(nodes) %>%
+  left_join(nl, by = c("name_real" = "name_real")) %>%
+  mutate(name = name_real) # Das stellt sicher, dass igraph den Namen findet
+
+# Top 3 Degree
+mgmt_degrees <- data.frame(
+  Name   = V(s_managements)$name_real,
+  Degree = degree(s_managements))
+mgmt_sorted <- mgmt_degrees[order(mgmt_degrees$Degree, decreasing = TRUE), ]
+head(mgmt_sorted, 3)
+
+
+top3_deg_m <- names(sort(degree(s_managements, mode="all"), decreasing = TRUE)[1])
+top3_deg_m
+
+```
+
+Das Teilnetzwerk der Management-Beziehungen umfasst nur noch die Knoten,
+die durch eine Management-Beziehung mit einem anderen verbunden sind.
+Somit sind alle Shows und alle Teilnehmenden ohne Management nicht mehr
+Teil des Netzwerks und die Teilnehmenden sind nicht mehr untereinander
+vernetzt. Es bleiben so noch `r n_knoten_m` und `r n_kanten_m` übrig.
+Sie bilden `r n_components_m` Komponenten. Insgesamt tauchen in diesem
+Sample von Reality-Stars `r n_knoten_nur_managements` Managements auf.
+Die folgenden Managements haben den höchsten Degree: `r top3_deg_m`. Da
+sie aber alle weniger als 10 Stars unter Vertrag haben, zeigt sich
+insgesamt kein dominierendes Management im vorliegenden Sample.
+
+## 5.2 "Die Zugehörigkeit zum gleichen Management erhöht die Interaktionen der Stars auf Social Media"
+
+## 5.2.1 "in Hinblick auf Instagram-Follows."
+
+```{r Teilnetzwerk Follows erstellen, include=FALSE}
+
+# Teilnetzwerk erstellen
+s_follows <- s %>% 
+  activate(edges) %>% 
+  filter(instagram == 1) %>%
+  activate(nodes) %>%
+  filter(type == 1)
+
+# Teilnetzwerk aufrufen
+s_follows
+
+```
+
+```{r Netzwerkbeschreibung Follows}
+
+# Komponenten? (aus wie vielen Bestandteilen besteht das Netzwerk s?)
+n_components_f <- count_components(s_follows)
+n_components_f
+
+# Anzahl der Knoten
+n_knoten_f <- vcount(s_follows)
+n_knoten_f
+
+#Anzahl der Kanten
+n_kanten_f <- ecount(s_follows)
+n_kanten_f
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_f <- round(edge_density(s_follows)*100, digits = 2)
+dichte_f
+
+# Reziprozitt in Prozent
+rezi_f <- round(reciprocity(s_follows)*100, digits = 2)
+rezi_f
+
+```
+
+Um die gegenseitigen Follows auf Social Media zu untersuchen, werden die
+Shows und Managements als Knoten nicht benötigt. Zudem ist es nach
+Kanten gefiltert, die einen Instagram-Follow anzeigen. Es bleiben noch
+`r n_knoten_f` Knoten und `r n_kanten_f` Kanten übrig, die in nur einer
+Komponente miteinander verbunden sind. Es ergibt sich eine Dichte von
+ca. `r dichte_f`% und eine Reziprozität von `r rezi_f`.
+
+```{r Teilnetzwerk Rosenschwestern erstellen, include=FALSE}
+
+s_rosenschwestern <- s %>% 
+  activate(nodes) %>% 
+  filter(management == "R")
+
+```
+
+```{r Netzwerkbeschreibung Rosenschwestern}
+
+# Anzahl der Knoten
+n_knoten_rosenschwestern <- vcount(s_rosenschwestern)
+n_knoten_rosenschwestern
+
+```
+
+```{r Teilnetzwerk Rosenschwestern nach Follows filtern, include=FALSE}
+
+# Nach Follows filtern
+s_rosenschwestern_f <- s_rosenschwestern %>% 
+  activate(edges) %>% 
+  filter(instagram == 1)
+
+```
+
+```{r Netzwerkbeschreibung Rosenschwestern Follows}
+
+# Anzahl der Knoten
+n_knoten_rosenschwestern_f <- vcount(s_rosenschwestern_f)
+n_knoten_rosenschwestern_f
+
+#Anzahl der Kanten
+n_kanten_rosenschwestern_f <- ecount(s_rosenschwestern_f)
+n_kanten_rosenschwestern_f
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_rosenschwestern_f <- round(edge_density(s_rosenschwestern_f)*100, digits = 2)
+dichte_rosenschwestern_f
+
+# Reziprozität in Prozent
+rezi_rosenschwestern_f <- round(reciprocity(s_rosenschwestern_f)*100, digits = 2)
+rezi_rosenschwestern_f
+
+```
+
+Filtert man auf die gleiche Weise, inkludiert aber nur die
+`r n_knoten_rosenschwestern` Personen, die bei der Rosenschwestern GmbH
+unter Vertrag stehen, ergibt sich bei `r n_kanten_rosenschwestern_f`
+Follows eine Dichte von `r dichte_rosenschwestern_f` und eine
+Reziprozität von `r rezi_rosenschwestern_f`. Damit liegen sowohl die
+Dichte als auch die Reziprozität unter den Werten des allgemeinen
+Follow-Netzwerks.
+
+```{r Teilnetzwerk Heyllo erstellen, include=FALSE}
+
+s_heyllo <- s %>% 
+  activate(nodes) %>% 
+  filter(management == "H")
+
+```
+
+```{r Netzwerkbeschreibung Heyllo}
+
+# Anzahl der Knoten
+n_knoten_heyllo <- vcount(s_heyllo)
+n_knoten_heyllo
+
+```
+
+```{r Teilnetzwerk Heyllo nach Follows filtern, include=FALSE}
+
+# Nach Follows filtern
+s_heyllo_f <- s_heyllo %>% 
+  activate(edges) %>% 
+  filter(instagram == 1)
+
+```
+
+```{r Netzwerkbeschreibung Heyllo Follows}
+
+# Anzahl der Knoten
+n_knoten_heyllo_f <- vcount(s_heyllo_f)
+n_knoten_heyllo_f
+
+#Anzahl der Kanten
+n_kanten_heyllo_f <- ecount(s_heyllo_f)
+n_kanten_heyllo_f
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_heyllo_f <- round(edge_density(s_heyllo_f)*100, digits = 2)
+dichte_heyllo_f
+
+# Reziprozität in Prozent
+rezi_heyllo_f <- round(reciprocity(s_heyllo_f)*100, digits = 2)
+rezi_heyllo_f
+
+```
+
+Als zweites Beispiel dient das Netzwerk der Instagram-Follows unter den
+`r n_knoten_heyllo` Stars, die Heyllo managed. Hier ergibt sich aus den
+`r n_kanten_heyllo_f` Follows eine Dichte von `r dichte_heyllo_f`, die
+somit deutlich über dem Wert des gesamten Follow-Netzwerks liegt. Auch
+die Reziprozität liegt mit `r rezi_heyllo_f` höher.
+
+```{r Teilnetzwerk Shine & Stories erstellen, include=FALSE}
+
+s_shinestories <- s %>% 
+  activate(nodes) %>% 
+  filter(management == "S&S")
+
+```
+
+```{r Netzwerkbeschreibung Shine & Stories}
+
+# Anzahl der Knoten
+n_knoten_shinestories <- vcount(s_shinestories)
+n_knoten_shinestories
+
+```
+
+```{r Teilnetzwerk Shine & Stories nach Follows filtern, include=FALSE}
+
+# Nach Follows filtern
+s_shinestories_f <- s_shinestories %>% 
+  activate(edges) %>% 
+  filter(instagram == 1)
+
+```
+
+```{r Netzwerkbeschreibung Shine & Stories Follows}
+
+# Anzahl der Knoten
+n_knoten_shinestories_f <- vcount(s_shinestories_f)
+n_knoten_shinestories_f
+
+#Anzahl der Kanten
+n_kanten_shinestories_f <- ecount(s_shinestories_f)
+n_kanten_shinestories_f
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_shinestories_f <- round(edge_density(s_shinestories_f)*100, digits = 2)
+dichte_shinestories_f
+
+# Reziprozität in Prozent
+rezi_shinestories_f <- round(reciprocity(s_shinestories_f)*100, digits = 2)
+rezi_shinestories_f
+
+```
+
+Shine & Stories ist mit `n_knoten_shinestories_f` das letzte der drei
+größeren Managements des Samples. Die durchschnittliche Dichte ist mit
+`r dichte_shinestories_f` ebenfalls höher, als im Netzwerk aller
+Instagram-Follows. Hier liegt die Reziprozität bei genau
+`r rezi_shinestories_f`%. Das bedeutet, dass alle bestehenden
+Beziehungen reziprok sind.
+
+Die Hypothese hat sich also tendenziell bestätigt. Für wirklich
+aussagekräftige Ergebnisse, müsste man aber ein größeres Sample an
+Reality-Stars aus dem gleichen Management heranziehen. Außerdem können
+Faktoren wie Teilnahme an der gleichen Staffel einer Show ebenfalls das
+Follow-Verhältnis beeinflussen. Das wurde in dieser Forschungsarbeit
+nicht betrachtet.
+
+Außerdem [Experteninterview: Follows können viele Gründe haben blabla,
+deswegen Analyse Posts]
+
+## 5.2.2 "in Hinblick auf Markierungen oder gemeinsame Posts."
+
+```{r Teilnetzwerk Posts erstellen, include=FALSE}
+
+# Teilnetzwerk erstellen
+s_posts <- s %>% 
+  activate(edges) %>% 
+  filter(instagram == 2) %>%
+  activate(nodes) %>%
+  filter(type == 1)
+
+# Teilnetzwerk aufrufen
+s_posts
+
+```
+
+```{r Netzwerkbeschreibung Posts}
+
+# Anzahl Komponenten
+n_components_p <- count_components(s_posts)
+n_components_p
+
+#Anzahl der Kanten
+n_kanten_p <- ecount(s_posts)
+n_kanten_p
+
+# Anzahl der Isolates
+n_isolates_p <- s_posts %>% 
+  with_graph(sum(node_is_isolated()))
+print(n_isolates_p)
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_p<- round(edge_density(s_posts)*100, digits = 2)
+dichte_p
+
+# Reziprozität in Prozent
+rezi_p <- round(reciprocity(s_posts)*100, digits = 2)
+rezi_p
+
+```
+
+Filtert man das Netzwerk nach Markierungen bzw. gemeinsamen Posts,
+ergeben sich `r n_components_p` Komponenten, von denen `r n_isolates_p`
+einzelne Knoten sind, die mit niemand anderem über einen Post verbunden
+sind. Insgesamt gibt es `r n_kanten_p` Kanten, also Posts oder
+Markierungen. Das Netzwerk hat eine Dichte von ca. `r dichte_p`% und die
+Reziprozität beträgt `r rezi_p`.
+
+```{r Teilnetzwerk Rosenschwestern nach Posts filtern, include=FALSE}
+
+# Nach Posts filtern
+s_rosenschwestern_p <- s_rosenschwestern %>% 
+  activate(edges) %>% 
+  filter(instagram == 2)
+
+```
+
+```{r Netzwerkbeschreibung Rosenschwestern Posts}
+
+# Anzahl der Knoten
+n_knoten_rosenschwestern_p <- vcount(s_rosenschwestern_p)
+n_knoten_rosenschwestern_p
+
+#Anzahl der Kanten
+n_kanten_rosenschwestern_p <- ecount(s_rosenschwestern_p)
+n_kanten_rosenschwestern_p
+
+# Anzahl der Isolates
+n_isolates_rosenschwestern_p <- s_rosenschwestern_p %>% 
+  with_graph(sum(node_is_isolated()))
+print(n_isolates_rosenschwestern_p)
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_rosenschwestern_p <- round(edge_density(s_rosenschwestern_p)*100, digits = 2)
+dichte_rosenschwestern_p
+
+# Reziprozität in Prozent
+rezi_rosenschwestern_p <- round(reciprocity(s_rosenschwestern_p)*100, digits = 2)
+rezi_rosenschwestern_p
+
+```
+
+Im Rosenschwestern-Management sind `r n_isolates_rosenschwestern_p` von
+`r n_knoten_rosenschwestern` nicht über Posts mit den anderen verbunden.
+Insgesamt gibt es `r n_kanten_rosenschwestern_p` solcher Verbindungen,
+woraus sich eine Dichte von `r dichte_rosenschwestern_p`% ergibt. Die
+Reziprozität liegt bei `r rezi_rosenschwestern_p`% und ist somit, wie
+auch die Dichte, deutlich über dem Wert aller Stars miteinander.
+
+```{r Teilnetzwerk Heyllo nach Posts filtern, include=FALSE}
+
+# Nach Follows filtern
+s_heyllo_p <- s_heyllo %>% 
+  activate(edges) %>% 
+  filter(instagram == 2)
+
+```
+
+```{r Netzwerkbeschreibung Heyllo Posts}
+
+# Anzahl der Knoten
+n_knoten_heyllo_p <- vcount(s_heyllo_p)
+n_knoten_heyllo_p
+
+#Anzahl der Kanten
+n_kanten_heyllo_p <- ecount(s_heyllo_p)
+n_kanten_heyllo_p
+
+# Anzahl der Isolates
+n_isolates_heyllo_p <- s_heyllo_p %>% 
+  with_graph(sum(node_is_isolated()))
+print(n_isolates_heyllo_p)
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_heyllo_p <- round(edge_density(s_heyllo_p)*100, digits = 2)
+dichte_heyllo_p
+
+# Reziprozität in Prozent
+rezi_heyllo_p <- round(reciprocity(s_heyllo_p)*100, digits = 2)
+rezi_heyllo_p
+
+```
+
+Unter den Heyllo-Stars gibt es keine Verbindungen über Posts, womit die
+Dichte und die Reziprozität jeweils bei `r dichte_heyllo_p` liegen.
+
+```{r Teilnetzwerk Shine & Stories nach Posts filtern, include=FALSE}
+
+# Nach Follows filtern
+s_shinestories_p <- s_shinestories %>% 
+  activate(edges) %>% 
+  filter(instagram == 2)
+
+```
+
+```{r Netzwerkbeschreibung Shine & Stories Posts}
+
+# Anzahl der Knoten
+n_knoten_shinestories_p <- vcount(s_shinestories_p)
+n_knoten_shinestories_p
+
+#Anzahl der Kanten
+n_kanten_shinestories_p <- ecount(s_shinestories_p)
+n_kanten_shinestories_p
+
+# Anzahl der Isolates
+n_isolates_shinestories_p <- s_shinestories_p %>% 
+  with_graph(sum(node_is_isolated()))
+print(n_isolates_shinestories_p)
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_shinestories_p <- round(edge_density(s_shinestories_p)*100, digits = 2)
+dichte_shinestories_p
+
+# Reziprozität in Prozent
+rezi_shinestories_p <- round(reciprocity(s_shinestories_p)*100, digits = 2)
+rezi_shinestories_p
+
+```
+
+## 5.3 "Stars die beim gleichen Management unter Vertrag stehen, arbeiten neben ihrer Reality-Karriere die in der gleichen Branche."
+
+## 5.4 "Das Management hat sowohl positiven als auch negativen Einfluss auf Votings innerhalb von Voting-Shows."
+
+```{r Voting-Netzwerk, include=FALSE}
+
+# Netzwerk nur Voting-Beziehungen
+s_voting <- s %>%
+  activate(edges) %>%
+  filter(relation == 1) %>%
+  activate(nodes) %>%
+  filter(!node_is_isolated())
+
+```
+
+```{r Netzwerkbeschreibung Votings}
+# Anzahl Komponenten
+n_components_v <- count_components(s_voting)
+n_components_v
+
+# Anzahl der Knoten
+n_knoten_v <- vcount(s_voting)
+n_knoten_v
+
+#Anzahl der Kanten
+n_kanten_v <- ecount(s_voting)
+n_kanten_v
+
+# Anzahl der Isolates
+n_isolates_v <- s_voting %>% 
+  with_graph(sum(node_is_isolated()))
+print(n_isolates_v)
+
+# durchschnittlicher Degree
+mean_degree_v <- mean(degree(s_voting))
+mean_degree_v
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_prozent_rounded_v<- round(edge_density(s_voting)*100, digits = 2)
+dichte_prozent_rounded_v
+
+# Reziprozität in Prozent
+rezi_v <- round(reciprocity(s_voting)*100, digits = 2)
+rezi_v
+
+```
+
+Netzwerkbeschreibung
+
+```{r Zentralitätsmaße Votings}
+
+# Wir weisen dem Netzwerk s_voting die Klarnamen dauerhaft als primäre Beschriftung zu
+V(s_voting)$name <- V(s_voting)$name_real
+
+# Top 3 Degree
+top3_deg_v <- sort(degree(s_voting), decreasing = TRUE)[1:3]
+top3_deg_v
+
+# Top Indegree
+top_in_v <- sort(degree(s_voting, mode="in"), decreasing = TRUE) [1:1]
+top_in_v
+
+# Min Indegree
+min_out_v <- sort(degree(s_voting, mode="in"), decreasing = FALSE) [1:1]
+min_out_v
+
+# Top Outdegree
+top_out_v <- sort(degree(s_voting, mode="out"), decreasing = TRUE) [1:1]
+top_out_v
+
+# Min Outdegree
+min_out_v <- sort(degree(s_voting, mode="out"), decreasing = FALSE) [1:1]
+min_out_v
+
+# höchste Betweenness 
+top_betw_v <- which.max(betweenness(s_voting, normalized = TRUE))
+top_betw_v
+
+# Closeness
+top_clos_v <- sort(closeness(s_voting, normalized=TRUE), decreasing = TRUE) [1:1]
+top_clos_v
+
+```
+
+Zentralitätsmaße
+
+```{r Teilnetzwerk Rosenschwestern nach Votings filtern, include=FALSE}
+
+# Nach Votings filtern
+s_rosenschwestern_v <- s_rosenschwestern %>% 
+  activate(edges) %>% 
+  filter(relation == 1)
+
+```
+
+```{r Netzwerkbeschreibung Rosenschwestern Votings}
+
+#Anzahl der Kanten
+n_kanten_rosenschwestern_v <- ecount(s_rosenschwestern_v)
+n_kanten_rosenschwestern_v
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_rosenschwestern_v <- round(edge_density(s_rosenschwestern_v)*100, digits = 2)
+dichte_rosenschwestern_v
+
+# Reziprozität in Prozent
+rezi_rosenschwestern_v <- round(reciprocity(s_rosenschwestern_v)*100, digits = 2)
+rezi_rosenschwestern_v
+
+```
+
+Netzwerkbeschreibung
+
+```{r Teilnetzwerk Heyllo nach Votings filtern, include=FALSE}
+
+# Nach Votings filtern
+s_heyllo_v <- s_heyllo %>% 
+  activate(edges) %>% 
+  filter(relation == 1)
+
+```
+
+```{r Netzwerkbeschreibung Heyllo Votings}
+
+#Anzahl der Kanten
+n_kanten_heyllo_v <- ecount(s_heyllo_v)
+n_kanten_heyllo_v
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_heyllo_v <- round(edge_density(s_heyllo_v)*100, digits = 2)
+dichte_heyllo_v
+
+# Reziprozität in Prozent
+rezi_heyllo_v <- round(reciprocity(s_heyllo_v)*100, digits = 2)
+rezi_heyllo_v
+
+```
+
+Netzwerkbeschreibung
+
+```{r Teilnetzwerk Shine & Stories nach Votings filtern, include=FALSE}
+
+# Nach Votings filtern
+s_shinestories_v <- s_shinestories %>% 
+  activate(edges) %>% 
+  filter(relation == 1)
+
+```
+
+```{r Netzwerkbeschreibung Shine & Stories Votings}
+
+#Anzahl der Kanten
+n_kanten_shinestories_v <- ecount(s_shinestories_v)
+n_kanten_shinestories_v
+
+# Dichte des Netzwerks s als Prozentwert
+dichte_shinestories_v <- round(edge_density(s_shinestories_v)*100, digits = 2)
+dichte_shinestories_v
+
+# Reziprozität in Prozent
+rezi_shinestories_v <- round(reciprocity(s_shinestories_v)*100, digits = 2)
+rezi_shinestories_v
+
+```
+
+Netzwerkbeschreibung
+
+Interpretation
+
+# Visualisierung des Netzwerks
+
+Nina
+
+# Literatur und Anhang
+
+Literatur
+
+Codebuch
+
+Zeiterfassung
+
+Teamcanvas
+
+Teamevaluation
