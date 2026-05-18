@@ -11,7 +11,6 @@ insta_user,Benutzernamen der Stars auf Instagram
 edgelist,
 from,id des ausgehenden Knotens
 to,id des eingehenden Knotens
-vote,"1= normale Stimme, 2= Stimme mit Sonderregel"
 relation,"1 = Rausgevoted, 2 = Managementbeziehung, 3 = Teilnehmer*in"
 show,"1 = Kampf der Realitystars , 2 = Das Sommerhaus der Stars, 3 = Der Promihof, 4 = Are You The One? VIP, 5 = Love Island VIP, 6 = Ich bin ein Star/ Dschungelcamp"
 instagram,"1 = Follow, 2 = gemeinsamer Post (1.7.25 - 15.2.26)"
