@@ -1,0 +1,18 @@
+nodelist,
+id,"Kürzel aus jeweils zwei oder drei Buchstaben des Vor- und Nachnamens (bei Stars), Kürzel aus einem bis drei Buchstaben/ Zahlen (bei Managements), Abkürzungen (bei Shows)"
+name_real,Vollständiger Name oder Künstler*innen Namen
+type,"1 = Participant, 2 = Management, 3 = Show"
+management,id des Managements (bei Stars)
+gender,"1 = female, 2 = male, 3 = diverse"
+business,"1 = Selbstständig mit eigener Firma/ Produkt, 2 = Werbung und Kooperationen, 3 = Dienstleistungen und Services, 4 = Sport, 5 = Sonstiges"
+business_real,Bezeichnung des ausgeübten Geschäftsmodells (bei Stars)
+insta_user,Benutzernamen der Stars auf Instagram
+,
+edgelist,
+from,id des ausgehenden Knotens
+to,id des eingehenden Knotens
+vote,"1= normale Stimme, 2= Stimme mit Sonderregel"
+relation,"1 = Rausgevoted, 2 = Managementbeziehung, 3 = Teilnehmer*in"
+show,"1 = Kampf der Realitystars , 2 = Das Sommerhaus der Stars, 3 = Der Promihof, 4 = Are You The One? VIP, 5 = Love Island VIP, 6 = Ich bin ein Star/ Duschungelcamp"
+instagram,"1 = Follow, 2 = gemeinsamer Post (1.7.25 - 15.2.26)"
+love,"1 = Kennenlernphase/ Flirt während der ShowPartner*innen, 2 = Partner*innen, 3 = Ex*partnerinnen/ Ex*kennenlernphasen"
